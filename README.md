@@ -90,7 +90,7 @@ Em cada fase, abre até m − 1 arquivos de entrada e utiliza uma heap mínima p
 
 Retorna a lista de novas sequências geradas e o custo da fase em termos de processamentos.
 
-*limpar_arquivos_temporarios(arquivo_final)
+* limpar_arquivos_temporarios(arquivo_final)
 
 Remove todos os arquivos temporários gerados durante a execução do algoritmo, preservando apenas o arquivo final ordenado.
 Essa função não altera o algoritmo, apenas organiza o ambiente de execução.
