@@ -1,9 +1,6 @@
 
 # mata54-trab-2025-2 - polymerge
 
-## Algoritmo de Intercalação Polifásica
-
-
 ## 1. Objetivo
 
 O objetivo deste trabalho é implementar um algoritmo de ordenação externa, capaz de ordenar arquivos de dados que não cabem integralmente na memória principal, respeitando a limitação de memória definida pelo parâmetro `m`.
