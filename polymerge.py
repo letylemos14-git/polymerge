@@ -2,181 +2,154 @@ import sys
 import os
 import heapq
 import math
-from collections import deque
+
+menor = -math.inf
 
 
-class Registro:
-    def __init__(self, valor):
-        self.valor = valor
+def gerar_sequencias_iniciais(m, entrada_nome):
+    k = m - 1
+    fitas = [open(f"F{i}.txt", "w") for i in range(k)]
+    entrada = open(entrada_nome, "r")
 
-    def __lt__(self, other):
-        return self.valor < other.valor
-
-
-def abrir_arquivo_leitura(nome):
-    return open(nome, "r")
-
-
-def abrir_arquivo_escrita(nome):
-    return open(nome, "w")
-
-
-def gerar_sequencias_iniciais(m, arquivo_entrada):
     heap = []
     congelados = []
-    arquivos_seq = []
 
-    total_registros = 0
-    processamentos = 0
+    proc = 0
+    total = 0
 
-    entrada = abrir_arquivo_leitura(arquivo_entrada)
 
-    for _ in range(m - 1):
+    for _ in range(k):
         linha = entrada.readline()
         if not linha:
             break
-        heapq.heappush(heap, Registro(int(linha.strip())))
-        total_registros += 1
-        processamentos += 1
+        heapq.heappush(heap, int(linha.strip()))
+        proc += 1
+        total += 1
 
-    seq_atual = 0
-    ultimo_valor = -math.inf
+    fita_atual = 0
+    ultimo = menor
+    seq_por_fita = [0] * m
+    seq_por_fita[fita_atual] = 1
 
     while heap:
-        registro = heapq.heappop(heap)
-        processamentos += 1
+        valor = heapq.heappop(heap)
+        proc += 1
 
-        if registro.valor < ultimo_valor:
-            seq_atual += 1
-            ultimo_valor = -math.inf
+        if valor < ultimo:
+            fitas[fita_atual].write("\n")
+            fita_atual = (fita_atual + 1) % k
+            seq_por_fita[fita_atual] += 1
+            ultimo = menor
 
-        if seq_atual == len(arquivos_seq):
-            arquivos_seq.append(
-                abrir_arquivo_escrita(f"seq_0_{seq_atual}.txt")
-            )
-
-        arquivos_seq[seq_atual].write(f"{registro.valor}\n")
-        ultimo_valor = registro.valor
+        fitas[fita_atual].write(f"{valor}\n")
+        proc += 1
+        ultimo = valor
 
         linha = entrada.readline()
         if linha:
-            linha = linha.strip()
-            if not linha:
-                continue
-            valor = int(linha)
-
-            total_registros += 1
-            processamentos += 1
-
-            if valor >= ultimo_valor:
-                heapq.heappush(heap, Registro(valor))
+            v = int(linha.strip())
+            proc += 1
+            total += 1
+            if v >= ultimo:
+                heapq.heappush(heap, v)
             else:
-                congelados.append(Registro(valor))
+                congelados.append(v)
 
         if not heap and congelados:
             heap = congelados
             heapq.heapify(heap)
             congelados = []
-            ultimo_valor = -math.inf
-            seq_atual += 1
+            fitas[fita_atual].write("\n")
+            fita_atual = (fita_atual + 1) % k
+            seq_por_fita[fita_atual] += 1
+            ultimo = menor
 
     entrada.close()
-    for arq in arquivos_seq:
-        arq.close()
+    for f in fitas:
+        f.close()
 
-    return seq_atual + 1, processamentos, total_registros
+    return seq_por_fita, proc, total
 
 
-def intercalar(m, fase, sequencias):
-    fila = deque(sequencias)
-    novas_sequencias = []
-    processamentos = 0
-    indice_saida = 0
+def intercalar_polifasico(m, seq_por_fita):
+    fitas = [f"F{i}.txt" for i in range(m)]
+    proc = 0
+    fases = []
+    
+    while max(seq_por_fita) > 1:
+        saida = seq_por_fita.index(0)
+        entradas = [i for i in range(m) if i != saida and seq_por_fita[i] > 0]
 
-    while len(fila) > 1:
-        entradas = [
-            abrir_arquivo_leitura(fila.popleft())
-            for _ in range(min(m - 1, len(fila)))
-        ]
+        runs = min(seq_por_fita[i] for i in entradas)
+        fases.append(runs)
 
-        nome_saida = f"seq_{fase}_{indice_saida}.txt"
-        saida = abrir_arquivo_escrita(nome_saida)
-        heap = []
+        arqs_in = [open(fitas[i], "r") for i in entradas]
+        arq_out = open(fitas[saida], "w")
 
-        for i, arq in enumerate(entradas):
-            linha = arq.readline()
-            if linha:
-                linha = linha.strip()
-                if not linha:
-                    continue
-                heapq.heappush(heap, (int(linha), i))
-                processamentos += 1
-        while heap:
-            valor, idx = heapq.heappop(heap)
-            processamentos += 1
-            saida.write(f"{valor}\n")
+        for _ in range(runs):
+            heap = []
 
-            linha = entradas[idx].readline()
-            if linha:
-                linha = linha.strip()
-                if not linha:
-                    continue
-                heapq.heappush(heap, (int(linha), idx))
-                processamentos += 1
+            for idx, arq in enumerate(arqs_in):
+                linha = arq.readline()
+                if linha and linha.strip() != "":
+                    heapq.heappush(heap, (int(linha.strip()), idx))
+                    proc += 1
 
-        for arq in entradas:
+            while heap:
+                valor, idx = heapq.heappop(heap)
+                arq_out.write(f"{valor}\n")
+                proc += 1
+
+                linha = arqs_in[idx].readline()
+                if linha and linha.strip() != "":
+                    heapq.heappush(heap, (int(linha.strip()), idx))
+                    proc += 1
+
+            arq_out.write("\n")
+
+        seq_por_fita[saida] = runs
+        for i in entradas:
+            seq_por_fita[i] -= runs
+
+        for arq in arqs_in:
             arq.close()
-        saida.close()
+        arq_out.close()
 
-        novas_sequencias.append(nome_saida)
-        indice_saida += 1
-
-    return novas_sequencias, processamentos
-
-
-def limpar_arquivos_temporarios(arquivo_final):
-    for nome in os.listdir():
-        if nome.startswith("seq_") and nome != arquivo_final:
-            try:
-                os.remove(nome)
-            except:
-                pass
+    fita_final = seq_por_fita.index(max(seq_por_fita))
+    return fitas[fita_final], proc, fases
 
 
 def main():
     if len(sys.argv) != 4:
-        print("Uso: polymerge m input.txt output.txt")
+        print("Uso: polymerge m entrada.txt saida.txt")
         sys.exit(1)
 
     m = int(sys.argv[1])
     entrada = sys.argv[2]
-    saida_final = sys.argv[3]
+    saida = sys.argv[3]
 
     if m < 3:
         print("Erro: m deve ser >= 3")
         sys.exit(1)
 
-    total_processamentos = 0
-    historico_seq = []
+    seq_por_fita, p1, total = gerar_sequencias_iniciais(m, entrada)
 
-    qtd_seq, proc, total_registros = gerar_sequencias_iniciais(m, entrada)
-    total_processamentos += proc
-    historico_seq.append(qtd_seq)
+    if total == 0:
+        print("Arquivo vazio.")
+        sys.exit(0)
 
-    sequencias = [f"seq_0_{i}.txt" for i in range(qtd_seq)]
-    fase = 1
+    fita_final, p2, fases = intercalar_polifasico(m, seq_por_fita)
 
-    while len(sequencias) > 1:
-        sequencias, proc = intercalar(m, fase, sequencias)
-        total_processamentos += proc
-        historico_seq.append(len(sequencias))
-        fase += 1
+    if os.path.exists(saida):
+        os.remove(saida)
+    os.rename(fita_final, saida)
 
-    os.rename(sequencias[0], saida_final)
-    limpar_arquivos_temporarios(saida_final)
+    for f in os.listdir():
+        if f.startswith("F") and f != saida:
+            os.remove(f)
 
-    print("#seq", " ".join(map(str, historico_seq)))
-    print(f"tx {total_processamentos / total_registros:.1f}")
+    print("#seq", *fases)
+    print(f"tx {(p1 + p2) / total:.1f}")
 
 
 if __name__ == "__main__":
