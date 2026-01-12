@@ -35,6 +35,21 @@ A intercalação das sequências é feita utilizando o método de ordenação po
 - O número de sequências intercaladas em cada fase é o mínimo entre as fitas de entrada.
 - O processo se repete até restar apenas uma sequência totalmente ordenada.
 
+A intercalação foi implementada com foco em correção lógica, mesmo ao custo de maior verbosidade. Cada decisão foi tomada para evitar erros comuns, como:
+
+- Misturar registros de runs diferentes;
+- Criar mais de uma fita vazia por fase;
+- Perder o controle do número real de sequências.
+- 
+O uso de uma heap durante a intercalação garante:
+- Ordenação correta entre registros de diferentes fitas;
+- Complexidade adequada;
+- Comportamento previsível.
+
+Sobre Ausência de Distribuição Fibonacci Explícita
+
+O projeto permite (e prioriza) a intercalação polifásica funcional, não apresentando uma distribuição inicial perfeita baseada em Fibonacci.
+
 
 ## 5. Execução do Programa
 
